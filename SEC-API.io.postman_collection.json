@@ -1,0 +1,2444 @@
+{
+  "info": {
+    "_postman_id": "03f3af3c-c7c5-477a-8bab-1720fb7aa2b3",
+    "name": "SEC-API.io",
+    "description": "Comprehensive Postman collection for the SEC-API.io platform. Covers all SEC EDGAR filing search, download, and structured data APIs.\n\n## Getting Started\n1. Set the `SEC_API_KEY` variable to your API key from https://sec-api.io\n2. All requests use the Authorization header automatically\n3. Example values are pre-populated for immediate testing\n\n## Authentication\nAll requests inherit the collection-level `Authorization: {{SEC_API_KEY}}` header. Bulk download endpoints also include `?token={{SEC_API_KEY}}` as a query parameter fallback.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "40102679",
+    "_collection_link": "https://go.postman.co/collection/40102679-03f3af3c-c7c5-477a-8bab-1720fb7aa2b3?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "EDGAR Filing Search & Download",
+      "item": [
+        {
+          "name": "Filing Query API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.filings && json.filings.length > 0) {",
+                  "    var f = json.filings[0];",
+                  "    pm.collectionVariables.set('FILING_CIK', String(f.cik));",
+                  "    pm.collectionVariables.set('CIK', String(f.cik));",
+                  "    pm.collectionVariables.set('TICKER', f.ticker || '');",
+                  "    var accDashed = f.accessionNo || '';",
+                  "    pm.collectionVariables.set('FILING_ACCESSION_DASHED', accDashed);",
+                  "    pm.collectionVariables.set('FILING_ACCESSION', accDashed.replace(/-/g, ''));",
+                  "    var url = f.linkToFilingDetails || '';",
+                  "    pm.collectionVariables.set('FILING_HTM_URL', url);",
+                  "    var xbrl = f.linkToXbrl || '';",
+                  "    pm.collectionVariables.set('FILING_XBRL_URL', xbrl);",
+                  "    var parts = url.split('/');",
+                  "    pm.collectionVariables.set('FILING_FILENAME', parts[parts.length - 1] || '');",
+                  "    console.log('Stored filing variables from: ' + f.companyName);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"query\": \"formType:\\\"10-K\\\" AND (companyName:\\\"{{companyName}}\\\" OR ticker:{{ticker}})\",\n    \"from\": \"0\",\n    \"size\": \"1\",\n    \"sort\": [\n        {\n            \"filedAt\": {\n                \"order\": \"desc\"\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}",
+              "host": [
+                "{{BASE_URL}}"
+              ]
+            },
+            "description": "Search SEC EDGAR filings using Lucene query syntax. Supports filtering by form type, ticker, CIK, date ranges, and more.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression (max 3500 chars)\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order, e.g. [{\"filedAt\": {\"order\": \"desc\"}}]\n\n**Example Queries:**\n- `formType:\"10-K\" AND ticker:AAPL` - Apple 10-K filings\n- `formType:\"8-K\" AND filedAt:[2024-01-01 TO 2024-12-31]` - All 8-K filings in 2024\n- `cik:320193` - All filings by CIK\n\n**Docs:** https://sec-api.io/docs/query-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Full-Text Search API",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"substantial doubt\",\n  \"formTypes\": [\"10-K\", \"10-Q\"],\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"page\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/full-text-search",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "full-text-search"
+              ]
+            },
+            "description": "Full-text search across the content of SEC filings. Returns filings containing the search term with highlighted excerpts.\n\n**Required Parameters:**\n- `query` (string): Search term or phrase. Use quotes for exact match.\n\n**Optional Parameters:**\n- `formTypes` (array): Filter by form types, e.g. [\"10-K\", \"8-K\"]\n- `startDate` (string): Start date in yyyy-mm-dd (default: 30 days ago)\n- `endDate` (string): End date in yyyy-mm-dd (default: today)\n- `ciks` (array): Restrict to specific CIKs\n- `page` (string): Page number (100 results/page, default: 1, max results: 10000)\n\n**Query Features:** Exact phrases (\"quotes\"), wildcards (*), Boolean (OR, NOT), hyphen exclusion\n\n**Docs:** https://sec-api.io/docs/full-text-search-api"
+          },
+          "response": []
+        },
+        {
+          "name": "XBRL-to-JSON Converter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/xbrl-to-json?htm-url={{FILING_HTM_URL}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "xbrl-to-json"
+              ],
+              "query": [
+                {
+                  "key": "htm-url",
+                  "value": "{{FILING_HTM_URL}}",
+                  "description": "(Required, pick one) URL of the HTML filing. Auto-populated from Filing Query API."
+                },
+                {
+                  "key": "xbrl-url",
+                  "value": "{{FILING_XBRL_URL}}",
+                  "description": "(Alternative) Direct XBRL XML file URL",
+                  "disabled": true
+                },
+                {
+                  "key": "accession-no",
+                  "value": "{{FILING_ACCESSION_DASHED}}",
+                  "description": "(Alternative) SEC accession number. Auto-populated from Filing Query API.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Convert XBRL financial data from SEC filings into structured JSON. Provide one of htm-url, xbrl-url, or accession-no.\n\n**Parameters (one required):**\n- `htm-url` (string): Filing URL (htm/html) from sec.gov\n- `xbrl-url` (string): Direct XBRL XML file URL\n- `accession-no` (string): SEC accession number\n\n**Response:** JSON with financial statements (StatementsOfIncome, BalanceSheets, StatementsOfCashFlows, etc.)\n\n**Docs:** https://sec-api.io/docs/xbrl-to-json-converter-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Filing Download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ARCHIVE_URL}}/{{FILING_CIK}}/{{FILING_ACCESSION}}/{{FILING_FILENAME}}",
+              "host": [
+                "{{ARCHIVE_URL}}"
+              ],
+              "path": [
+                "{{FILING_CIK}}",
+                "{{FILING_ACCESSION}}",
+                "{{FILING_FILENAME}}"
+              ]
+            },
+            "description": "Download any SEC filing document from the EDGAR archive mirror.\n\n**Path Parameters:**\n- `cik` (required): Filer's CIK without leading zeros (e.g. 1318605)\n- `accession-number` (required): Numeric only, hyphens removed (e.g. 000156459021004599)\n- `filename` (required): Document filename (any type: HTML, XML, TXT, PDF)\n\n**Rate Limits:** Standard: 50 req/sec. Beta mirror (edgar-mirror.sec-api.io): 200 req/sec\n\n**Docs:** https://sec-api.io/docs/sec-filings-render-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Filing PDF Generator",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/filing-reader?token={{SEC_API_KEY}}&url={{FILING_HTM_URL}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "filing-reader"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "(Required) API key"
+                },
+                {
+                  "key": "url",
+                  "value": "{{FILING_HTM_URL}}",
+                  "description": "(Required) SEC filing URL. Auto-populated from Filing Query API."
+                }
+              ]
+            },
+            "description": "Convert an SEC filing into a downloadable PDF.\n\n**Required Parameters:**\n- `token` (string): API key\n- `url` (string): SEC filing URL from sec.gov/Archives\n\n**Response:** application/pdf\n\n**Docs:** https://sec-api.io/docs/sec-filings-render-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Section Extractor (10-K/10-Q/8-K)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/extractor?token={{SEC_API_KEY}}&url={{FILING_HTM_URL}}&item=1A&type=text",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "extractor"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "(Required) API key"
+                },
+                {
+                  "key": "url",
+                  "value": "{{FILING_HTM_URL}}",
+                  "description": "(Required) SEC filing URL. Auto-populated from Filing Query API."
+                },
+                {
+                  "key": "item",
+                  "value": "1A",
+                  "description": "(Required) Section identifier. 10-K: 1, 1A, 1B, 1C, 2-15. 10-Q: part1item1-4, part2item1-6. 8-K: 1-1 through 9-1, signature"
+                },
+                {
+                  "key": "type",
+                  "value": "text",
+                  "description": "(Optional) Response format: 'text' (default) or 'html'"
+                }
+              ]
+            },
+            "description": "Extract specific sections from 10-K, 10-Q, or 8-K filings.\n\n**Required Parameters:**\n- `token` (string): API key\n- `url` (string): Filing URL\n- `item` (string): Section identifier\n\n**Optional Parameters:**\n- `type` (string): 'text' (default) or 'html'\n\n**10-K Sections:** 1, 1A, 1B, 1C, 2, 3, 4, 5, 6, 7, 7A, 8, 9, 9A, 9B, 10, 11, 12, 13, 14, 15\n**10-Q Sections:** part1item1, part1item2, part1item3, part1item4, part2item1, part2item1a, part2item2, part2item3, part2item4, part2item5, part2item6\n**8-K Sections:** 1-1 through 9-1, signature\n\n**Docs:** https://sec-api.io/docs/sec-filings-item-extraction-api"
+          },
+          "response": []
+        },
+        {
+          "name": "EDGAR Ingestion Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/edgar-index/ingestion-log/{{TODAY}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "edgar-index",
+                "ingestion-log",
+                "{{TODAY}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get EDGAR filing ingestion logs for a specific date.\n\n**Path Parameters:**\n- `date` (required): Date in YYYY-MM-DD format\n\n**Response:** JSON with lastUpdatedAt, total.value, and data array (accessionNo, formType, filedAt)\n\n**Docs:** https://sec-api.io/docs/query-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Search SEC EDGAR filings, download documents, convert XBRL data, and extract filing sections."
+    },
+    {
+      "name": "Insider Trading & Ownership",
+      "item": [
+        {
+          "name": "Form 3/4/5 - Insider Trading Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"issuer.tradingSymbol:TSLA AND rDate:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/insider-trading",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "insider-trading"
+              ]
+            },
+            "description": "Search Form 3, 4, and 5 insider trading transactions.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Example Queries:**\n- `issuer.tradingSymbol:TSLA` - Tesla insider trades\n- `nonDerivativeTable.transactions.coding.code:P` - Open market purchases\n- `reportingOwner.name:\"Elon Musk\"` - Specific insider\n\n**Docs:** https://sec-api.io/docs/insider-ownership-trading-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form 3/4/5 - Bulk Download Index",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bulk/form-4/index.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bulk",
+                "form-4",
+                "index.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List available Form 4 bulk download files. Change path to form-3 or form-5 for other form types.\n\n**Variants:**\n- `/bulk/form-3/index.json`\n- `/bulk/form-4/index.json`\n- `/bulk/form-5/index.json`\n\n**Docs:** https://sec-api.io/docs/insider-ownership-trading-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form 144 - Restricted Stock Sales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"issuer.tradingSymbol:AAPL\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-144",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-144"
+              ]
+            },
+            "description": "Search Form 144 restricted stock sale notices. Dataset: 70,000+ filings since October 2022, updated within 300ms of EDGAR publication.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/form-144-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form 13F - Institutional Holdings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"holdings.nameOfIssuer:\\\"APPLE INC\\\" AND periodOfReport:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"periodOfReport\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-13f/holdings",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-13f",
+                "holdings"
+              ]
+            },
+            "description": "Search Form 13F institutional holdings data.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** nameOfIssuer, cusip, ticker, cik, value, shrsOrPrnAmt, investmentDiscretion, votingAuthority\n\n**Docs:** https://sec-api.io/docs/form-13f-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form 13F - Cover Pages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filingManager.name:\\\"BERKSHIRE HATHAWAY INC\\\"\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"periodOfReport\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-13f/cover-pages",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-13f",
+                "cover-pages"
+              ]
+            },
+            "description": "Search Form 13F cover page data (filing manager info, total value, signature).\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** filingManager, crdNumber, periodOfReport, tableValueTotal, signature\n\n**Docs:** https://sec-api.io/docs/form-13f-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form 13F - Bulk Download Index",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bulk/form-13f/holdings/index.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bulk",
+                "form-13f",
+                "holdings",
+                "index.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List available Form 13F holdings bulk download files.\n\n**Variants:**\n- `/bulk/form-13f/holdings/index.json`\n- `/bulk/form-13f/cover-pages/index.json`\n\n**Docs:** https://sec-api.io/docs/form-13f-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form 13D/13G - Activist Investors",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-13d-13g",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-13d-13g"
+              ]
+            },
+            "description": "Search Form 13D and 13G activist investor filings (beneficial ownership >5%).\n\n**Required Parameters:**\n- `query` (string): Lucene query with Boolean operators, range queries, wildcards\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** accessionNo, formType, filedAt, filer info, issuer details, owner/acquirer data\n\n**Docs:** https://sec-api.io/docs/form-13d-13g-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Search insider trading transactions (Forms 3, 4, 5), restricted stock sales (Form 144), institutional holdings (Form 13F), and activist investor filings (Form 13D/13G)."
+    },
+    {
+      "name": "Investment Advisers (Form ADV)",
+      "item": [
+        {
+          "name": "Form ADV - Firm Search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    var crd = json.data[0].Info && json.data[0].Info.FirmCrdNb;",
+                  "    if (crd) pm.collectionVariables.set('FIRM_CRD', String(crd));",
+                  "    console.log('Stored FIRM_CRD: ' + crd);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Info.FirmName:\\\"BRIDGEWATER ASSOCIATES\\\"\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"Info.FirmCrdNb\": {\"order\": \"asc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/firm",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "firm"
+              ]
+            },
+            "description": "Search Form ADV investment adviser firm filings. Dataset: 41,000+ firms, updated daily 5:00-7:30 AM EST.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Schedule A (Direct Owners)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/schedule-a-direct-owners/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "schedule-a-direct-owners",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get Schedule A direct owners and executive officers for an investment adviser.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number. Example: 161222 (Bridgewater Associates)\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Schedule B (Indirect Owners)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/schedule-b-indirect-owners/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "schedule-b-indirect-owners",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get Schedule B indirect owners for an investment adviser.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number. Example: 161222 (Bridgewater Associates)\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Schedule D 1.B (Other Business Names)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/schedule-d-1-b/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "schedule-d-1-b",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get other business names used by an investment adviser.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Schedule D 5.K (Managed Accounts)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/schedule-d-5-k/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "schedule-d-5-k",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get separately managed account details including asset distributions, borrowings, derivatives, and custodians.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Schedule D 7.A (Financial Affiliations)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/schedule-d-7-a/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "schedule-d-7-a",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get financial industry affiliations for an investment adviser.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Schedule D 7.B (Private Funds)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/schedule-d-7-b-1/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "schedule-d-7-b-1",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get private fund reporting details for an investment adviser.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Individual Adviser Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"IndvlPK.lastNm:\\\"Smith\\\" AND IndvlPK.firstNm:\\\"John\\\"\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"IndvlPK.lastNm\": {\"order\": \"asc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/individual",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "individual"
+              ]
+            },
+            "description": "Search individual investment adviser representatives. Dataset: 380,000+ individuals.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form ADV - Brochures",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-adv/brochures/{{FIRM_CRD}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-adv",
+                "brochures",
+                "{{FIRM_CRD}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get Part 2 brochure submissions for an investment adviser.\n\n**Path Parameters:**\n- `crd` (required): Firm CRD number\n\n**Response:** JSON with list of brochure submissions\n\n**Docs:** https://sec-api.io/docs/form-adv-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Search and retrieve Form ADV filings for investment adviser firms and individual representatives. Includes schedules for ownership, affiliations, managed accounts, and private funds."
+    },
+    {
+      "name": "Investment Companies",
+      "item": [
+        {
+          "name": "Form N-CEN - Annual Report Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"generalInfo.seriesName:\\\"Vanguard 500 Index Fund\\\"\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-ncen",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-ncen"
+              ]
+            },
+            "description": "Search Form N-CEN annual reports for investment companies.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/form-ncen-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form N-CEN - Bulk Download Index",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bulk/form-ncen/index.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bulk",
+                "form-ncen",
+                "index.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List available Form N-CEN bulk download files. Updated daily 1:00-4:00 AM ET.\n\n**Docs:** https://sec-api.io/docs/form-ncen-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form N-PX - Proxy Voting Search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('NPX_ACCESSION', json.data[0].accessionNo || '');",
+                  "    console.log('Stored NPX_ACCESSION: ' + json.data[0].accessionNo);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"companyName:\\\"Vanguard\\\"\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-npx",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-npx"
+              ]
+            },
+            "description": "Search Form N-PX proxy voting filings.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/form-npx-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form N-PX - Voting Records by Accession",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/form-npx/{{NPX_ACCESSION}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-npx",
+                "{{NPX_ACCESSION}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get detailed proxy voting records for a specific N-PX filing. Can return up to 500,000 voting records.\n\n**Path Parameters:**\n- `accession-number` (required): SEC accession number\n\n**Response:** JSON with proxyVotingRecords array\n\n**Docs:** https://sec-api.io/docs/form-npx-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form N-PORT - Mutual Fund Holdings Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"genInfo.seriesName:\\\"Vanguard 500 Index Fund\\\"\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"genInfo.repPd\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-nport",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-nport"
+              ]
+            },
+            "description": "Search Form N-PORT mutual fund portfolio holdings.\n\n**Required Parameters:**\n- `query` (string): Lucene query with Boolean operators, wildcards, nested conditions\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0)\n- `size` (integer): Results per page (default: 10, max: 10)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/form-nport-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form N-PORT - Bulk Download Index",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bulk/form-nport/index.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bulk",
+                "form-nport",
+                "index.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List available Form N-PORT bulk download files. Updated daily 1:00-4:00 AM ET.\n\n**Docs:** https://sec-api.io/docs/form-nport-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Access data for investment company filings: annual reports (N-CEN), proxy voting records (N-PX), and mutual fund portfolio holdings (N-PORT)."
+    },
+    {
+      "name": "Public & Private Offerings",
+      "item": [
+        {
+          "name": "Form S-1/424B4 - IPO Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filedAt:[2024-01-01 TO 2024-12-31] AND formType:\\\"S-1\\\"\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-s1-424b4",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-s1-424b4"
+              ]
+            },
+            "description": "Search Form S-1 and 424B4 IPO prospectus data.\n\n**Required Parameters:**\n- `query` (string): Lucene query with Boolean operators, range queries, wildcards\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** tickers, securities, publicOfferingPrice, underwritingDiscount, proceedsBeforeExpenses, underwriters, lawFirms, auditors, management, employees\n\n**Docs:** https://sec-api.io/docs/form-s1-424b4-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form C - Crowdfunding Offerings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-c",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-c"
+              ]
+            },
+            "description": "Search Form C crowdfunding offering filings.\n\n**Required Parameters:**\n- `query` (string): Lucene query with AND/OR operators\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** issuerInformation, offeringInformation, annualReportDisclosureRequirements, signatureInfo\n\n**Docs:** https://sec-api.io/docs/form-c-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Form D - Private Securities Offerings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"primaryIssuer.stateOrCountry:\\\"CA\\\" AND offeringData.offeringSalesAmounts.totalOfferingAmount:[1000000 TO *]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-d",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-d"
+              ]
+            },
+            "description": "Search Form D private securities offering filings.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** primaryIssuer, offeringData, submissionType\n\n**Docs:** https://sec-api.io/docs/form-d-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Regulation A - Search All",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/reg-a/search",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "reg-a",
+                "search"
+              ]
+            },
+            "description": "Search all Regulation A offering statements (Forms 1-A, 1-K, 1-Z).\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/reg-a-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Regulation A - Form 1-A (Offering Statements)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/reg-a/form-1a",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "reg-a",
+                "form-1a"
+              ]
+            },
+            "description": "Search Regulation A Form 1-A offering statements.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/reg-a-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Regulation A - Form 1-K (Annual Reports)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/reg-a/form-1k",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "reg-a",
+                "form-1k"
+              ]
+            },
+            "description": "Search Regulation A Form 1-K annual reports.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/reg-a-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Regulation A - Form 1-Z (Exit Reports)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/reg-a/form-1z",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "reg-a",
+                "form-1z"
+              ]
+            },
+            "description": "Search Regulation A Form 1-Z exit reports.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/reg-a-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "IPO prospectuses (Form S-1/424B4), crowdfunding offerings (Form C), private placements (Form D), and Regulation A offerings."
+    },
+    {
+      "name": "Form 8-K Structured Data",
+      "item": [
+        {
+          "name": "Item 4.01 - Auditor Changes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"items.item401.newAccountantName:\\\"Deloitte\\\" AND filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-8k",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-8k"
+              ]
+            },
+            "description": "Search Form 8-K Item 4.01 auditor change disclosures.\n\n**Required Parameters:**\n- `query` (string): Lucene query targeting item401 fields\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Item 4.01 Fields:** newAccountantName, formerAccountantName, engagementEndReason, goingConcern, reportedIcfrWeakness, opinionType\n\n**Docs:** https://sec-api.io/docs/form-8k-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Item 4.02 - Financial Restatements",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"items.item402.restatementIsNecessary:true AND filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-8k",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-8k"
+              ]
+            },
+            "description": "Search Form 8-K Item 4.02 financial restatement disclosures.\n\n**Required Parameters:**\n- `query` (string): Lucene query targeting item402 fields\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Item 4.02 Fields:** keyComponents, identifiedIssues, affectedReportingPeriods, restatementIsNecessary, reasonsForRestatement, impactIsMaterial, materialWeaknessIdentified, netIncomeDecreased/Increased, revenueDecreased/Increased\n\n**Docs:** https://sec-api.io/docs/form-8k-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Item 5.02 - Director/Officer Changes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL AND items.item502.personnelChanges.changeType:\\\"appointment\\\" AND filedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/form-8k",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "form-8k"
+              ]
+            },
+            "description": "Search Form 8-K Item 5.02 director and officer change disclosures.\n\n**Required Parameters:**\n- `query` (string): Lucene query targeting item502 fields\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Item 5.02 Fields:** personnelChanges, bonusPlans, organizationChanges, additionalReportableEvents\n\n**Docs:** https://sec-api.io/docs/form-8k-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Structured data extracted from Form 8-K current reports: auditor changes (Item 4.01), financial restatements (Item 4.02), and director/officer changes (Item 5.02)."
+    },
+    {
+      "name": "Public Company Data",
+      "item": [
+        {
+          "name": "Executive Compensation - By Ticker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/compensation/{{TICKER}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "compensation",
+                "{{TICKER}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get historical executive compensation data by stock ticker.\n\n**Path Parameters:**\n- `ticker` (required): Stock ticker symbol (e.g. TSLA)\n\n**Coverage:** 2005-present from Form DEF 14A\n\n**Docs:** https://sec-api.io/docs/executive-compensation-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Executive Compensation - By CIK",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/compensation/{{CIK}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "compensation",
+                "{{CIK}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get historical executive compensation data by CIK number.\n\n**Path Parameters:**\n- `cik` (required): Central Index Key (e.g. 1318605 for Tesla)\n\n**Coverage:** 2005-present from Form DEF 14A\n\n**Docs:** https://sec-api.io/docs/executive-compensation-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Executive Compensation - Custom Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL AND reportingYear:2023\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"totalCompensation\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/compensation",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "compensation"
+              ]
+            },
+            "description": "Search executive compensation data with custom queries.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Searchable Fields:** ticker, CIK, executive name, position, reportingYear, salary, bonus, stockAwards, optionAwards, incentiveCompensation, pensionChanges, otherCompensation, totalCompensation\n\n**Docs:** https://sec-api.io/docs/executive-compensation-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Directors & Board Members",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL AND isIndependent:true\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/directors-and-board-members",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "directors-and-board-members"
+              ]
+            },
+            "description": "Search directors and board member data across 10,000+ companies.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** name, position, age, directorClass, dateFirstElected, isIndependent, committeeMemberships, qualificationsAndExperience\n\n**Coverage:** 100,000+ directors, 2007-present, real-time updates\n\n**Docs:** https://sec-api.io/docs/directors-and-board-members-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Outstanding Shares & Public Float",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/float?ticker={{TICKER}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "float"
+              ],
+              "query": [
+                {
+                  "key": "ticker",
+                  "value": "{{TICKER}}",
+                  "description": "(Required, one of ticker or cik) Stock ticker symbol"
+                },
+                {
+                  "key": "cik",
+                  "value": "{{CIK}}",
+                  "description": "(Alternative) Central Index Key",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get outstanding shares and public float data.\n\n**Parameters (one required):**\n- `ticker` (string): Stock ticker symbol\n- `cik` (string): Central Index Key\n\n**Key Response Fields:** outstandingShares, publicFloat, periodOfReport, sourceFilingAccessionNo\n\n**Docs:** https://sec-api.io/docs/outstanding-shares-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Company Subsidiaries",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/subsidiaries",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "subsidiaries"
+              ]
+            },
+            "description": "Search company subsidiary data extracted from SEC filings.\n\n**Required Parameters:**\n- `query` (string): Lucene query with Boolean operators, wildcards, nested conditions\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** subsidiaries array with name and jurisdiction for each subsidiary\n\n**Docs:** https://sec-api.io/docs/subsidiaries-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Executive compensation, directors and board members, outstanding shares and public float, and company subsidiaries."
+    },
+    {
+      "name": "Audit & Compliance",
+      "item": [
+        {
+          "name": "Audit Fees - Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL AND fiscalYear:2023\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"filedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/audit-fees",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "audit-fees"
+              ]
+            },
+            "description": "Search audit fee disclosures from SEC filings.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/audit-fees-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Fees - Bulk Download Index",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bulk/audit-fees/index.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bulk",
+                "audit-fees",
+                "index.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List available audit fees bulk download files.\n\n**Docs:** https://sec-api.io/docs/audit-fees-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Reports - Financial Statements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('REPORT_ID', json.data[0].id || '');",
+                  "    console.log('Stored REPORT_ID: ' + json.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"ticker:AAPL AND reportDate:[2023-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"reportDate\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/audit-reports/financial-statements",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "audit-reports",
+                "financial-statements"
+              ]
+            },
+            "description": "Search financial statement audit reports.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/audit-reports-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Reports - ICFR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"materialWeaknessIdentified:true AND reportDate:[2023-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"reportDate\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/audit-reports/icfr",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "audit-reports",
+                "icfr"
+              ]
+            },
+            "description": "Search ICFR (Internal Controls over Financial Reporting) audit reports.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Fields:** materialWeaknessIdentified, icfrOpinionType, controlFramework\n\n**Docs:** https://sec-api.io/docs/audit-reports-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Report Content - Download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/audit-reports/content/{{REPORT_ID}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "audit-reports",
+                "content",
+                "{{REPORT_ID}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download the full text content of an audit report by its ID.\n\n**Path Parameters:**\n- `report_id` (required): Report ID obtained from search results\n\n**Response:** text/plain (full audit report content)\n\n**Docs:** https://sec-api.io/docs/audit-reports-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Audit fees, financial statement audit reports, and internal controls over financial reporting (ICFR) audit data."
+    },
+    {
+      "name": "Enforcement Actions & SRO",
+      "item": [
+        {
+          "name": "SEC Enforcement Actions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"releasedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"releasedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/sec-enforcement-actions",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "sec-enforcement-actions"
+              ]
+            },
+            "description": "Search SEC enforcement actions.\n\n**Required Parameters:**\n- `query` (string): Lucene query with field:value format and AND/OR operators\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order (default: releasedAt desc)\n\n**Key Response Fields:** releaseNo, releasedAt, entities, penalties, violations\n\n**Docs:** https://sec-api.io/docs/sec-enforcement-actions-api"
+          },
+          "response": []
+        },
+        {
+          "name": "SEC Litigation Releases",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"releasedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"releasedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/sec-litigation-releases",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "sec-litigation-releases"
+              ]
+            },
+            "description": "Search SEC litigation releases. Coverage: 10,000+ releases from 1995-present.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order (default: releasedAt desc)\n\n**Key Response Fields:** releaseNo, releasedAt, url, title, summary, tags, entities, penaltyAmounts, violatedSections, hasAgreedToSettlement, hasAgreedToPayPenalty\n\n**Docs:** https://sec-api.io/docs/sec-litigation-releases-api"
+          },
+          "response": []
+        },
+        {
+          "name": "SEC Administrative Proceedings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"releasedAt:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"releasedAt\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/sec-administrative-proceedings",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "sec-administrative-proceedings"
+              ]
+            },
+            "description": "Search SEC administrative proceedings.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order (default: releasedAt desc)\n\n**Key Response Fields:** releaseNo, fileNumbers, respondents, entities, title, summary, tags, complaints, violatedSections, orders, penaltyAmounts, requestedRelief\n\n**Docs:** https://sec-api.io/docs/sec-administrative-proceedings-api"
+          },
+          "response": []
+        },
+        {
+          "name": "AAER - Search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('AAER_NO', String(json.data[0].aaerNo));",
+                  "    var releases = json.data[0].releaseNumbers || [];",
+                  "    if (releases.length > 0) {",
+                  "        pm.collectionVariables.set('AAER_FILENAME', 'primary-' + releases[0] + '.pdf.txt');",
+                  "    }",
+                  "    console.log('Stored AAER_NO: ' + json.data[0].aaerNo);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"dateTime:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"50\",\n  \"sort\": [{\"dateTime\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/aaers",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "aaers"
+              ]
+            },
+            "description": "Search Accounting and Auditing Enforcement Releases (AAERs).\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Key Response Fields:** aaerNo, releaseNumbers, dateTime, respondents, summary, tags, entities, complaints, penaltyAmounts, violatedSections, hasAgreedToSettlement\n\n**Docs:** https://sec-api.io/docs/aaer-api"
+          },
+          "response": []
+        },
+        {
+          "name": "AAER - Metadata Download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/aaers/metadata/all.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "aaers",
+                "metadata",
+                "all.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download complete AAER metadata as a single JSON file.\n\n**Docs:** https://sec-api.io/docs/aaer-api"
+          },
+          "response": []
+        },
+        {
+          "name": "AAER - Documents by Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/aaers/documents/{{CURRENT_YEAR}}.zip?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "aaers",
+                "documents",
+                "{{CURRENT_YEAR}}.zip"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download all AAER documents for a given year as a ZIP archive.\n\n**Path Parameters:**\n- `year` (required): 4-digit year (e.g. 2024)\n\n**Response:** Compressed ZIP with organized AAER folders containing PDFs and text files\n\n**Docs:** https://sec-api.io/docs/aaer-api"
+          },
+          "response": []
+        },
+        {
+          "name": "SRO Filings - Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"sro:\\\"NASDAQ\\\" AND issueDate:[2024-01-01 TO 2024-12-31]\",\n  \"from\": \"0\",\n  \"size\": \"100\",\n  \"sort\": [{\"issueDate\": {\"order\": \"desc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/sro",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "sro"
+              ]
+            },
+            "description": "Search Self-Regulatory Organization (SRO) filings.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (string): Pagination offset (default: 0, max: 10000)\n- `size` (string): Results per page (default: 100, max: 100)\n- `sort` (array): Sort order (default: issueDate desc)\n\n**Key Response Fields:** releaseNumber, issueDate, fileNumber, sro, details, commentsDue, urls\n\n**Docs:** https://sec-api.io/docs/sro-api"
+          },
+          "response": []
+        },
+        {
+          "name": "SRO - Metadata Download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/sro/metadata/all.json?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "sro",
+                "metadata",
+                "all.json"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download complete SRO filings metadata from 1997-present as a single JSON file.\n\n**Docs:** https://sec-api.io/docs/sro-api"
+          },
+          "response": []
+        },
+        {
+          "name": "SRO - Documents by Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/sro/documents/{{CURRENT_YEAR}}.zip?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "sro",
+                "documents",
+                "{{CURRENT_YEAR}}.zip"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download all SRO documents for a given year as a ZIP archive.\n\n**Path Parameters:**\n- `year` (required): 4-digit year (e.g. 2024)\n\n**Response:** ZIP with organized folders containing PDFs, HTMLs, and text versions\n\n**Docs:** https://sec-api.io/docs/sro-api"
+          },
+          "response": []
+        },
+        {
+          "name": "AAER - Single File Download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/aaers/{{AAER_NO}}/{{AAER_FILENAME}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "aaers",
+                "{{AAER_NO}}",
+                "{{AAER_FILENAME}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download a single AAER document (PDF or text version).\n\n**Path Parameters:**\n- `aaerNo` (required): AAER number\n- `filename` (required): Format: primary-{releaseNo}.pdf or primary-{releaseNo}.pdf.txt\n\n**Docs:** https://sec-api.io/docs/aaer-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "SEC enforcement actions, litigation releases, administrative proceedings, accounting and auditing enforcement releases (AAER), and self-regulatory organization (SRO) filings."
+    },
+    {
+      "name": "Data Mapping",
+      "item": [
+        {
+          "name": "Mapping - By CIK",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.length > 0) {",
+                  "    pm.collectionVariables.set('TICKER', json[0].ticker || '');",
+                  "    pm.collectionVariables.set('CUSIP', json[0].cusip || '');",
+                  "    console.log('Stored TICKER: ' + json[0].ticker + ', CUSIP: ' + json[0].cusip);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/cik/{{CIK}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "cik",
+                "{{CIK}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Resolve a CIK to company details including ticker, name, exchange, sector, and industry.\n\n**Path Parameters:**\n- `cik` (required): Central Index Key without leading zeros. Example: 320193 (Apple)\n\n**Response Fields:** name, ticker, cik, cusip, exchange, isDelisted, category, sector, industry, sic, currency, location\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Mapping - By Ticker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.length > 0) {",
+                  "    pm.collectionVariables.set('CIK', String(json[0].cik));",
+                  "    pm.collectionVariables.set('CUSIP', json[0].cusip || '');",
+                  "    console.log('Stored CIK: ' + json[0].cik + ', CUSIP: ' + json[0].cusip);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/ticker/{{TICKER}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "ticker",
+                "{{TICKER}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Resolve a stock ticker to company details.\n\n**Path Parameters:**\n- `ticker` (required): Stock ticker symbol (e.g. AAPL)\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Mapping - By CUSIP",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/cusip/{{CUSIP}}?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "cusip",
+                "{{CUSIP}}"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Resolve a CUSIP to company details.\n\n**Path Parameters:**\n- `cusip` (required): CUSIP identifier (e.g. 037833100 for Apple)\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Mapping - By Company Name",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/name/Apple?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "name",
+                "Apple"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Search companies by name.\n\n**Path Parameters:**\n- `name` (required): Company name or partial name\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Mapping - By Exchange",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/exchange/NASDAQ?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "exchange",
+                "NASDAQ"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List all companies on a specific exchange.\n\n**Path Parameters:**\n- `exchange` (required): Exchange code (e.g. NASDAQ, NYSE, AMEX)\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Mapping - By Sector",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/sector/Technology?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "sector",
+                "Technology"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List all companies in a specific sector.\n\n**Path Parameters:**\n- `sector` (required): Industry sector name (e.g. Technology, Healthcare, Finance)\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Mapping - By Industry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/mapping/industry/Software?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "mapping",
+                "industry",
+                "Software"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "List all companies in a specific industry.\n\n**Path Parameters:**\n- `industry` (required): Industry classification (e.g. Software, Biotechnology)\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Mapping - CIK to Ticker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bulk/mapping/cik-to-ticker?token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bulk",
+                "mapping",
+                "cik-to-ticker"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Download the complete CIK-to-ticker mapping as a JSON file. Updated daily 1:00-5:00 AM.\n\n**Other bulk mapping endpoints:**\n- `/bulk/mapping/cik-to-cusip`\n- `/bulk/mapping/ticker-to-cik`\n- `/bulk/mapping/ticker-to-cusip`\n- `/bulk/mapping/cusip-to-cik`\n- `/bulk/mapping/cusip-to-ticker`\n\n**Docs:** https://sec-api.io/docs/mapping-api"
+          },
+          "response": []
+        },
+        {
+          "name": "EDGAR Entities - By CIK (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/edgar-entities?cik={{CIK}}&token={{SEC_API_KEY}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "edgar-entities"
+              ],
+              "query": [
+                {
+                  "key": "cik",
+                  "value": "{{CIK}}",
+                  "description": "(Required) Central Index Key"
+                },
+                {
+                  "key": "token",
+                  "value": "{{SEC_API_KEY}}",
+                  "description": "API key"
+                }
+              ]
+            },
+            "description": "Get EDGAR entity details by CIK number.\n\n**Required Parameters:**\n- `cik` (string): Central Index Key\n\n**Response Fields:** cik, name, businessAddress, mailingAddress, stateOfIncorporation, phone, irsNo, sic, sicLabel, cfOffice, fiscalYearEnd, filerCategory, auditorName, auditorFirmId, formTypes\n\n**Docs:** https://sec-api.io/docs/edgar-entities-api"
+          },
+          "response": []
+        },
+        {
+          "name": "EDGAR Entities - Custom Search (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"name:\\\"Apple Inc\\\"\",\n  \"from\": \"0\",\n  \"size\": \"10\",\n  \"sort\": [{\"name\": {\"order\": \"asc\"}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/edgar-entities",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "edgar-entities"
+              ]
+            },
+            "description": "Search the EDGAR entities database with custom queries.\n\n**Required Parameters:**\n- `query` (string): Lucene query expression\n\n**Optional Parameters:**\n- `from` (integer): Pagination offset (default: 0, max: 10000)\n- `size` (integer): Results per page (default: 50, max: 50)\n- `sort` (array): Sort order\n\n**Docs:** https://sec-api.io/docs/edgar-entities-api"
+          },
+          "response": []
+        }
+      ],
+      "description": "Map between CIK, CUSIP, ticker, company name, exchange, sector, and industry. Includes bulk mapping downloads and EDGAR entity database search."
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{SEC_API_KEY}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          "var now = new Date();",
+          "pm.collectionVariables.set('TODAY', now.toISOString().split('T')[0]);",
+          "pm.collectionVariables.set('CURRENT_YEAR', String(now.getFullYear()));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "SEC_API_KEY",
+      "value": "YOUR_API_KEY_HERE",
+      "description": "Your SEC-API.io API key. Get one at https://sec-api.io"
+    },
+    {
+      "key": "BASE_URL",
+      "value": "https://api.sec-api.io",
+      "description": "Base URL for SEC-API.io endpoints"
+    },
+    {
+      "key": "ARCHIVE_URL",
+      "value": "https://archive.sec-api.io",
+      "description": "Base URL for SEC filing archive downloads"
+    },
+    {
+      "key": "FILING_HTM_URL",
+      "value": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm",
+      "description": "Filing URL from search results. Auto-set by Filing Query API test script."
+    },
+    {
+      "key": "FILING_CIK",
+      "value": "320193",
+      "description": "CIK from filing search results. Auto-set by Filing Query API."
+    },
+    {
+      "key": "FILING_ACCESSION",
+      "value": "000032019324000123",
+      "description": "Accession number without hyphens. Auto-set by Filing Query API."
+    },
+    {
+      "key": "FILING_ACCESSION_DASHED",
+      "value": "0000320193-24-000123",
+      "description": "Accession number with hyphens. Auto-set by Filing Query API."
+    },
+    {
+      "key": "FILING_FILENAME",
+      "value": "aapl-20240928.htm",
+      "description": "Document filename. Auto-set by Filing Query API."
+    },
+    {
+      "key": "FIRM_CRD",
+      "value": "161222",
+      "description": "Investment adviser CRD number. Auto-set by Form ADV Firm Search."
+    },
+    {
+      "key": "NPX_ACCESSION",
+      "value": "0000102909-23-013588",
+      "description": "N-PX accession number. Auto-set by N-PX Proxy Voting Search."
+    },
+    {
+      "key": "REPORT_ID",
+      "value": "example-report-id",
+      "description": "Audit report ID. Auto-set by Audit Reports search."
+    },
+    {
+      "key": "TICKER",
+      "value": "AAPL",
+      "description": "Company ticker. Auto-set by Filing Query API or Mapping endpoints."
+    },
+    {
+      "key": "CIK",
+      "value": "320193",
+      "description": "Company CIK. Auto-set by Filing Query API or Mapping endpoints."
+    },
+    {
+      "key": "CUSIP",
+      "value": "037833100",
+      "description": "Company CUSIP. Auto-set by Mapping endpoints."
+    },
+    {
+      "key": "AAER_NO",
+      "value": "4500",
+      "description": "AAER number. Auto-set by AAER Search."
+    },
+    {
+      "key": "AAER_FILENAME",
+      "value": "primary-34-99000.pdf.txt",
+      "description": "AAER document filename. Auto-set by AAER Search."
+    },
+    {
+      "key": "TODAY",
+      "value": "2026-03-12",
+      "description": "Current date. Auto-set by collection pre-request script."
+    },
+    {
+      "key": "CURRENT_YEAR",
+      "value": "2026",
+      "description": "Current year. Auto-set by collection pre-request script."
+    },
+    {
+      "key": "FILING_XBRL_URL",
+      "value": ""
+    },
+    {
+      "key": "FILING_URL",
+      "value": ""
+    },
+    {
+      "key": "companyName",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "ticker",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

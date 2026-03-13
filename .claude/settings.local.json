@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:sec-api.io)",
+      "WebSearch",
+      "WebFetch(domain:schema.postman.com)"
+    ]
+  }
+}
