@@ -1,0 +1,16 @@
+$kind: http-request
+description: |-
+  Get Schedule A direct owners and executive officers for an investment adviser.
+
+  **Path Parameters:**
+  - `crd` (required): Firm CRD number. Example: 161222 (Bridgewater Associates)
+
+  **Docs:** https://sec-api.io/docs/form-adv-api
+url: "{{BASE_URL}}/form-adv/schedule-a-direct-owners/{{FIRM_CRD}}?token={{SEC_A\
+  PI_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 2000

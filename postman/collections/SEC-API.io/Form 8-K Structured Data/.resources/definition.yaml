@@ -1,0 +1,5 @@
+$kind: collection
+description: "Structured data extracted from Form 8-K current reports: auditor
+  changes (Item 4.01), financial restatements (Item 4.02), and director/officer
+  changes (Item 5.02)."
+order: 6000

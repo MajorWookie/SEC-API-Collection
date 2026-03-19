@@ -1,0 +1,26 @@
+$kind: http-request
+description: >-
+  Get EDGAR entity details by CIK number.
+
+
+  **Required Parameters:**
+
+  - `cik` (string): Central Index Key
+
+
+  **Response Fields:** cik, name, businessAddress, mailingAddress,
+  stateOfIncorporation, phone, irsNo, sic, sicLabel, cfOffice, fiscalYearEnd,
+  filerCategory, auditorName, auditorFirmId, formTypes
+
+
+  **Docs:** https://sec-api.io/docs/edgar-entities-api
+url: "{{BASE_URL}}/edgar-entities?cik={{CIK}}&token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: cik
+    value: "{{CIK}}"
+    description: (Required) Central Index Key
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 9000

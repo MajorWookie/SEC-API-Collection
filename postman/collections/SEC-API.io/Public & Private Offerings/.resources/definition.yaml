@@ -1,0 +1,4 @@
+$kind: collection
+description: IPO prospectuses (Form S-1/424B4), crowdfunding offerings (Form C),
+  private placements (Form D), and Regulation A offerings.
+order: 5000

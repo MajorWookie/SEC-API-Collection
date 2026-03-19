@@ -1,0 +1,19 @@
+$kind: http-request
+description: >-
+  List all companies in a specific industry.
+
+
+  **Path Parameters:**
+
+  - `industry` (required): Industry classification (e.g. Software,
+  Biotechnology)
+
+
+  **Docs:** https://sec-api.io/docs/mapping-api
+url: "{{BASE_URL}}/mapping/industry/Software?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 7000

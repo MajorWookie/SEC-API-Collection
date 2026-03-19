@@ -1,0 +1,26 @@
+$kind: http-request
+description: |-
+  Resolve a stock ticker to company details.
+
+  **Path Parameters:**
+  - `ticker` (required): Stock ticker symbol (e.g. AAPL)
+
+  **Docs:** https://sec-api.io/docs/mapping-api
+url: "{{BASE_URL}}/mapping/ticker/{{TICKER}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+scripts:
+  - type: afterResponse
+    code: >-
+      var json = pm.response.json();
+
+      if (json && json.length > 0) {
+          pm.collectionVariables.set('CIK', String(json[0].cik));
+          pm.collectionVariables.set('CUSIP', json[0].cusip || '');
+          console.log('Stored CIK: ' + json[0].cik + ', CUSIP: ' + json[0].cusip);
+      }
+    language: text/javascript
+order: 2000

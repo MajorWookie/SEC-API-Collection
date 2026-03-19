@@ -1,0 +1,21 @@
+$kind: http-request
+description: |-
+  Convert an SEC filing into a downloadable PDF.
+
+  **Required Parameters:**
+  - `token` (string): API key
+  - `url` (string): SEC filing URL from sec.gov/Archives
+
+  **Response:** application/pdf
+
+  **Docs:** https://sec-api.io/docs/sec-filings-render-api
+url: "{{BASE_URL}}/filing-reader?token={{SEC_API_KEY}}&url={{FILING_HTM_URL}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: (Required) API key
+  - key: url
+    value: "{{FILING_HTM_URL}}"
+    description: (Required) SEC filing URL. Auto-populated from Filing Query API.
+order: 5000

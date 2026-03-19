@@ -1,0 +1,27 @@
+$kind: http-request
+description: |-
+  Search the EDGAR entities database with custom queries.
+
+  **Required Parameters:**
+  - `query` (string): Lucene query expression
+
+  **Optional Parameters:**
+  - `from` (integer): Pagination offset (default: 0, max: 10000)
+  - `size` (integer): Results per page (default: 50, max: 50)
+  - `sort` (array): Sort order
+
+  **Docs:** https://sec-api.io/docs/edgar-entities-api
+url: "{{BASE_URL}}/edgar-entities"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "name:\"Apple Inc\"",
+      "from": "0",
+      "size": "10",
+      "sort": [{"name": {"order": "asc"}}]
+    }
+order: 10000

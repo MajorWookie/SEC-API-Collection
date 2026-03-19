@@ -1,0 +1,12 @@
+$kind: http-request
+description: |-
+  List available audit fees bulk download files.
+
+  **Docs:** https://sec-api.io/docs/audit-fees-api
+url: "{{BASE_URL}}/bulk/audit-fees/index.json?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 2000

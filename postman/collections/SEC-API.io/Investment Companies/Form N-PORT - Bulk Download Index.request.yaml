@@ -1,0 +1,12 @@
+$kind: http-request
+description: |-
+  List available Form N-PORT bulk download files. Updated daily 1:00-4:00 AM ET.
+
+  **Docs:** https://sec-api.io/docs/form-nport-api
+url: "{{BASE_URL}}/bulk/form-nport/index.json?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 6000

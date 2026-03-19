@@ -1,0 +1,4 @@
+$kind: collection
+description: Map between CIK, CUSIP, ticker, company name, exchange, sector, and
+  industry. Includes bulk mapping downloads and EDGAR entity database search.
+order: 10000

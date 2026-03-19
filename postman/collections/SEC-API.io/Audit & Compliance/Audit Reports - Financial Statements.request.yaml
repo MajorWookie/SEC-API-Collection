@@ -1,0 +1,36 @@
+$kind: http-request
+description: |-
+  Search financial statement audit reports.
+
+  **Required Parameters:**
+  - `query` (string): Lucene query expression
+
+  **Optional Parameters:**
+  - `from` (integer): Pagination offset (default: 0, max: 10000)
+  - `size` (integer): Results per page (default: 50, max: 50)
+  - `sort` (array): Sort order
+
+  **Docs:** https://sec-api.io/docs/audit-reports-api
+url: "{{BASE_URL}}/audit-reports/financial-statements"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "ticker:AAPL AND reportDate:[2023-01-01 TO 2024-12-31]",
+      "from": "0",
+      "size": "50",
+      "sort": [{"reportDate": {"order": "desc"}}]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      var json = pm.response.json();
+      if (json.data && json.data.length > 0) {
+          pm.collectionVariables.set('REPORT_ID', json.data[0].id || '');
+          console.log('Stored REPORT_ID: ' + json.data[0].id);
+      }
+    language: text/javascript
+order: 3000

@@ -1,0 +1,27 @@
+$kind: http-request
+description: >-
+  Download the complete CIK-to-ticker mapping as a JSON file. Updated daily
+  1:00-5:00 AM.
+
+
+  **Other bulk mapping endpoints:**
+
+  - `/bulk/mapping/cik-to-cusip`
+
+  - `/bulk/mapping/ticker-to-cik`
+
+  - `/bulk/mapping/ticker-to-cusip`
+
+  - `/bulk/mapping/cusip-to-cik`
+
+  - `/bulk/mapping/cusip-to-ticker`
+
+
+  **Docs:** https://sec-api.io/docs/mapping-api
+url: "{{BASE_URL}}/bulk/mapping/cik-to-ticker?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 8000

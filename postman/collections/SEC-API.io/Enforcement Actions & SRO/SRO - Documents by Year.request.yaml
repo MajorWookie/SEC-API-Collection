@@ -1,0 +1,22 @@
+$kind: http-request
+description: >-
+  Download all SRO documents for a given year as a ZIP archive.
+
+
+  **Path Parameters:**
+
+  - `year` (required): 4-digit year (e.g. 2024)
+
+
+  **Response:** ZIP with organized folders containing PDFs, HTMLs, and text
+  versions
+
+
+  **Docs:** https://sec-api.io/docs/sro-api
+url: "{{BASE_URL}}/sro/documents/{{CURRENT_YEAR}}.zip?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 9000

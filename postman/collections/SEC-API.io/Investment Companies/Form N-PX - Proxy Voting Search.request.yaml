@@ -1,0 +1,37 @@
+$kind: http-request
+description: |-
+  Search Form N-PX proxy voting filings.
+
+  **Required Parameters:**
+  - `query` (string): Lucene query expression
+
+  **Optional Parameters:**
+  - `from` (integer): Pagination offset (default: 0, max: 10000)
+  - `size` (integer): Results per page (default: 50, max: 50)
+  - `sort` (array): Sort order
+
+  **Docs:** https://sec-api.io/docs/form-npx-api
+url: "{{BASE_URL}}/form-npx"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "companyName:\"Vanguard\"",
+      "from": "0",
+      "size": "10",
+      "sort": [{"filedAt": {"order": "desc"}}]
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      var json = pm.response.json();
+
+      if (json.data && json.data.length > 0) {
+          pm.collectionVariables.set('NPX_ACCESSION', json.data[0].accessionNo || '');
+          console.log('Stored NPX_ACCESSION: ' + json.data[0].accessionNo);
+      }
+    language: text/javascript
+order: 3000

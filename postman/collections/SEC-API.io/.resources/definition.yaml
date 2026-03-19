@@ -1,0 +1,58 @@
+$kind: collection
+description: >-
+  Comprehensive Postman collection for the SEC-API.io platform. Covers all SEC
+  EDGAR filing search, download, and structured data APIs.
+
+
+  ## Getting Started
+
+  1. Set the `SEC_API_KEY` variable to your API key from https://sec-api.io
+
+  2. All requests use the Authorization header automatically
+
+  3. Example values are pre-populated for immediate testing
+
+
+  ## Authentication
+
+  All requests inherit the collection-level `Authorization: {{SEC_API_KEY}}`
+  header. Bulk download endpoints also include `?token={{SEC_API_KEY}}` as a
+  query parameter fallback.
+variables:
+  SEC_API_KEY: YOUR_API_KEY_HERE
+  BASE_URL: https://api.sec-api.io
+  ARCHIVE_URL: https://archive.sec-api.io
+  FILING_HTM_URL: https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm
+  FILING_CIK: "320193"
+  FILING_ACCESSION: "000032019324000123"
+  FILING_ACCESSION_DASHED: 0000320193-24-000123
+  FILING_FILENAME: aapl-20240928.htm
+  FIRM_CRD: "161222"
+  NPX_ACCESSION: 0000102909-23-013588
+  REPORT_ID: example-report-id
+  TICKER: AAPL
+  CIK: "320193"
+  CUSIP: "037833100"
+  AAER_NO: "4500"
+  AAER_FILENAME: primary-34-99000.pdf.txt
+  TODAY: 2026-03-12
+  CURRENT_YEAR: "2026"
+  FILING_XBRL_URL: ""
+  FILING_URL: ""
+  companyName: ""
+  ticker: ""
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      var now = new Date();
+      pm.collectionVariables.set('TODAY', now.toISOString().split('T')[0]);
+      pm.collectionVariables.set('CURRENT_YEAR', String(now.getFullYear()));
+    language: text/javascript
+auth:
+  - id: 241478c7-f0c6-40c2-ba31-c693a2cc8937
+    type: apikey
+    name: apikey auth
+    credentials:
+      key: Authorization
+      value: "{{SEC_API_KEY}}"
+      in: header

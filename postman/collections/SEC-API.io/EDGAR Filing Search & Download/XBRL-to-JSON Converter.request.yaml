@@ -1,0 +1,36 @@
+$kind: http-request
+description: >-
+  Convert XBRL financial data from SEC filings into structured JSON. Provide one
+  of htm-url, xbrl-url, or accession-no.
+
+
+  **Parameters (one required):**
+
+  - `htm-url` (string): Filing URL (htm/html) from sec.gov
+
+  - `xbrl-url` (string): Direct XBRL XML file URL
+
+  - `accession-no` (string): SEC accession number
+
+
+  **Response:** JSON with financial statements (StatementsOfIncome,
+  BalanceSheets, StatementsOfCashFlows, etc.)
+
+
+  **Docs:** https://sec-api.io/docs/xbrl-to-json-converter-api
+url: "{{BASE_URL}}/xbrl-to-json?htm-url={{FILING_HTM_URL}}"
+method: GET
+queryParams:
+  - key: htm-url
+    value: "{{FILING_HTM_URL}}"
+    description: (Required, pick one) URL of the HTML filing. Auto-populated from
+      Filing Query API.
+  - key: xbrl-url
+    value: "{{FILING_XBRL_URL}}"
+    disabled: true
+    description: (Alternative) Direct XBRL XML file URL
+  - key: accession-no
+    value: "{{FILING_ACCESSION_DASHED}}"
+    disabled: true
+    description: (Alternative) SEC accession number. Auto-populated from Filing Query API.
+order: 3000

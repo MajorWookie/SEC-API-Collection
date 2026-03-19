@@ -1,0 +1,41 @@
+$kind: http-request
+name: Form S-1/424B4 - IPO Data
+description: >-
+  Search Form S-1 and 424B4 IPO prospectus data.
+
+
+  **Required Parameters:**
+
+  - `query` (string): Lucene query with Boolean operators, range queries,
+  wildcards
+
+
+  **Optional Parameters:**
+
+  - `from` (integer): Pagination offset (default: 0, max: 10000)
+
+  - `size` (integer): Results per page (default: 50, max: 50)
+
+  - `sort` (array): Sort order
+
+
+  **Key Response Fields:** tickers, securities, publicOfferingPrice,
+  underwritingDiscount, proceedsBeforeExpenses, underwriters, lawFirms,
+  auditors, management, employees
+
+
+  **Docs:** https://sec-api.io/docs/form-s1-424b4-api
+url: "{{BASE_URL}}/form-s1-424b4"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "filedAt:[2024-01-01 TO 2024-12-31] AND formType:\"S-1\"",
+      "from": "0",
+      "size": "50",
+      "sort": [{"filedAt": {"order": "desc"}}]
+    }
+order: 1000

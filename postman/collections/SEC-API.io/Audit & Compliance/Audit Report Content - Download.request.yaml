@@ -1,0 +1,17 @@
+$kind: http-request
+description: |-
+  Download the full text content of an audit report by its ID.
+
+  **Path Parameters:**
+  - `report_id` (required): Report ID obtained from search results
+
+  **Response:** text/plain (full audit report content)
+
+  **Docs:** https://sec-api.io/docs/audit-reports-api
+url: "{{BASE_URL}}/audit-reports/content/{{REPORT_ID}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 5000

@@ -1,0 +1,19 @@
+$kind: http-request
+description: >-
+  Get separately managed account details including asset distributions,
+  borrowings, derivatives, and custodians.
+
+
+  **Path Parameters:**
+
+  - `crd` (required): Firm CRD number
+
+
+  **Docs:** https://sec-api.io/docs/form-adv-api
+url: "{{BASE_URL}}/form-adv/schedule-d-5-k/{{FIRM_CRD}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 5000

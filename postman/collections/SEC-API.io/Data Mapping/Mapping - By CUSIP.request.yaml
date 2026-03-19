@@ -1,0 +1,15 @@
+$kind: http-request
+description: |-
+  Resolve a CUSIP to company details.
+
+  **Path Parameters:**
+  - `cusip` (required): CUSIP identifier (e.g. 037833100 for Apple)
+
+  **Docs:** https://sec-api.io/docs/mapping-api
+url: "{{BASE_URL}}/mapping/cusip/{{CUSIP}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 3000

@@ -1,0 +1,17 @@
+$kind: http-request
+description: |-
+  Get historical executive compensation data by stock ticker.
+
+  **Path Parameters:**
+  - `ticker` (required): Stock ticker symbol (e.g. TSLA)
+
+  **Coverage:** 2005-present from Form DEF 14A
+
+  **Docs:** https://sec-api.io/docs/executive-compensation-api
+url: "{{BASE_URL}}/compensation/{{TICKER}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 1000

@@ -1,0 +1,5 @@
+$kind: collection
+description: Search insider trading transactions (Forms 3, 4, 5), restricted
+  stock sales (Form 144), institutional holdings (Form 13F), and activist
+  investor filings (Form 13D/13G).
+order: 2000

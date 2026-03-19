@@ -1,0 +1,21 @@
+$kind: http-request
+description: >-
+  Download a single AAER document (PDF or text version).
+
+
+  **Path Parameters:**
+
+  - `aaerNo` (required): AAER number
+
+  - `filename` (required): Format: primary-{releaseNo}.pdf or
+  primary-{releaseNo}.pdf.txt
+
+
+  **Docs:** https://sec-api.io/docs/aaer-api
+url: "{{BASE_URL}}/aaers/{{AAER_NO}}/{{AAER_FILENAME}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+order: 10000

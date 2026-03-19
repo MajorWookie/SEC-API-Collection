@@ -1,0 +1,39 @@
+$kind: http-request
+description: >-
+  Search company subsidiary data extracted from SEC filings.
+
+
+  **Required Parameters:**
+
+  - `query` (string): Lucene query with Boolean operators, wildcards, nested
+  conditions
+
+
+  **Optional Parameters:**
+
+  - `from` (integer): Pagination offset (default: 0)
+
+  - `size` (integer): Results per page (default: 50, max: 50)
+
+  - `sort` (array): Sort order
+
+
+  **Key Response Fields:** subsidiaries array with name and jurisdiction for
+  each subsidiary
+
+
+  **Docs:** https://sec-api.io/docs/subsidiaries-api
+url: "{{BASE_URL}}/subsidiaries"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "ticker:AAPL",
+      "from": "0",
+      "size": "10",
+      "sort": [{"filedAt": {"order": "desc"}}]
+    }
+order: 6000

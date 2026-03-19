@@ -1,0 +1,35 @@
+$kind: http-request
+description: >-
+  Resolve a CIK to company details including ticker, name, exchange, sector, and
+  industry.
+
+
+  **Path Parameters:**
+
+  - `cik` (required): Central Index Key without leading zeros. Example: 320193
+  (Apple)
+
+
+  **Response Fields:** name, ticker, cik, cusip, exchange, isDelisted, category,
+  sector, industry, sic, currency, location
+
+
+  **Docs:** https://sec-api.io/docs/mapping-api
+url: "{{BASE_URL}}/mapping/cik/{{CIK}}?token={{SEC_API_KEY}}"
+method: GET
+queryParams:
+  - key: token
+    value: "{{SEC_API_KEY}}"
+    description: API key
+scripts:
+  - type: afterResponse
+    code: >-
+      var json = pm.response.json();
+
+      if (json && json.length > 0) {
+          pm.collectionVariables.set('TICKER', json[0].ticker || '');
+          pm.collectionVariables.set('CUSIP', json[0].cusip || '');
+          console.log('Stored TICKER: ' + json[0].ticker + ', CUSIP: ' + json[0].cusip);
+      }
+    language: text/javascript
+order: 1000
