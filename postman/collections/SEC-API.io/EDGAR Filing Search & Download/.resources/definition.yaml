@@ -1,4 +1,0 @@
-$kind: collection
-description: Search SEC EDGAR filings, download documents, convert XBRL data,
-  and extract filing sections.
-order: 1000

@@ -1,5 +1,0 @@
-$kind: collection
-description: "Access data for investment company filings: annual reports
-  (N-CEN), proxy voting records (N-PX), and mutual fund portfolio holdings
-  (N-PORT)."
-order: 4000
