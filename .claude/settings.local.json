@@ -3,7 +3,9 @@
     "allow": [
       "WebFetch(domain:sec-api.io)",
       "WebSearch",
-      "WebFetch(domain:schema.postman.com)"
+      "WebFetch(domain:schema.postman.com)",
+      "Bash(python3 -c \":*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }
